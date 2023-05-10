@@ -36,16 +36,35 @@ void addPassword(std::ofstream &file) {
             cin >> letters;
 
             cout << "Include special characters? Y for yes, N for no: ";
-            auto special = std::string();
-            cin >> special;
+            auto specialChars = char();
+            cin >> specialChars;
 
             std::random_device rd;
+            std::uniform_int_distribution<int>lowercase(97, 122);
+            std::uniform_int_distribution<int>uppercase(65, 90);
+            std::uniform_int_distribution<int>special(35, 38);
+            std::uniform_int_distribution<int>typeOfChar(1, 3);
 
             for (int i = 0; i < length; ++i) {
-
+                switch (typeOfChar(rd)) {
+                    case 1:
+                        if(letters == 'L' || letters == 'B') {
+                            password += (char) lowercase(rd);
+                            break;
+                        }
+                    case 2:
+                        if(letters == 'U' || letters == 'B') {
+                            password += (char) uppercase(rd);
+                            break;
+                        }
+                    case 3:
+                        if (specialChars == 'Y') {
+                            password += (char) special(rd);
+                        }
+                }
             }
+            file << password + " ";
     }
-
 
     cout << "Category: ";
 
@@ -55,6 +74,9 @@ void addPassword(std::ofstream &file) {
 }
 
 int main() {
+    for (int i = 0; i < 256; ++i) {
+        cout << i << " " << (char) i << std::endl;
+    }
 //    cout << "Enter the name of the file: ";
 //    auto path = std::string();
 
