@@ -6,11 +6,12 @@
 #include <sstream>
 #include <fstream>
 #include <string>
+#include <algorithm>
 
 using std::cout, std::cin;
 
 // TODO Introduce password complexity check
-void addPassword(std::string path) {
+void addPassword(std::string const& path) {
 
     auto file = std::ofstream(path, std::ios::app);
 
@@ -85,7 +86,7 @@ void addPassword(std::string path) {
     file << category + "\n";
 }
 
-void searchPassword(std::string path) {
+bool searchPassword(std::string const& path) {
 
     auto file = std::ifstream(path, std::ios::in);
 
@@ -104,13 +105,68 @@ void searchPassword(std::string path) {
             }
         }
     }
-    if(!found) cout << "Not found";
+    if(!found){
+        cout << "Not found";
+        return false;
+    }
+    return true;
+}
+
+void sortPasswords(std::string const& path) {
+    auto file = std::ifstream(path, std::ios::in);
+
+    auto passwordsTable = std::vector<std::vector<std::string>>();
+
+    int i = 0;
+    for (auto line = std::string(); std::getline(file, line); ++i) {
+        if(line.length() == 0) continue;
+
+        auto word = std::string();
+        auto stream = std::stringstream(line);
+
+        passwordsTable.emplace_back();
+        for (int counter = 0; stream >> word; ++counter) {
+            passwordsTable.back().push_back(word);
+        }
+    }
+
+    auto answer = int();
+    while (answer != 1 && answer != 2) {
+        cout << "Type 1 to sort by name, type 2 to sort by category: ";
+        cin >> answer;
+
+        switch (answer) {
+            case 1:
+                std::ranges::sort(passwordsTable, [](auto a, auto b) {
+                    if(a[0] == b[0]) return a[2] < b[2];
+                    return a[0] < b[0];
+                });
+            case 2:
+                std::ranges::sort(passwordsTable, [](auto a, auto b) {
+                    if(a[2] == b[2]) return a[0] < b[0];
+                    return a[2] < b[2];
+                });
+            default:
+                cout << "Invalid input!";
+        }
+    }
+
+    for (int j = 0; j < passwordsTable.size(); ++j) {
+        fmt::print("{}\n", passwordsTable[j]);
+    }
 }
 
 int main() {
-    for (int i = 0; i < 256; ++i) {
-        cout << i << " " << (char) i << std::endl;
-    }
+    sortPasswords("password.txt");
+
+    return 0;
+}
+
+
+
+//    for (int i = 0; i < 256; ++i) {
+//        cout << i << " " << (char) i << std::endl;
+//    }
 
 //    cout << "Enter the name of the file: ";
 //    auto path = std::string();
@@ -122,8 +178,3 @@ int main() {
 //        auto file = std::ofstream(path, std::ios::app);
 //
 //    }
-
-    searchPassword("password.txt");
-
-    return 0;
-}
