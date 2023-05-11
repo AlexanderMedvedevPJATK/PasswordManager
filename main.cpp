@@ -7,19 +7,73 @@
 #include <fstream>
 #include <string>
 #include <algorithm>
+#include <set>
+#include <cctype>
+#include <regex>
 
-using std::cout, std::cin;
+using std::cout, std::cin, std::endl;
+
+void trim(std::string& str) {
+    const auto trailingSpaces = str.find_last_not_of(" \t\r\n");
+
+    if (trailingSpaces != std::string::npos) {
+        str.erase(trailingSpaces + 1);
+    } else {
+        str.erase();
+    }
+}
+
+void fillCategories(std::string const& path, std::vector<std::string>& categories) {
+    auto file = std::ifstream(path, std::ios::in);
+
+    for (auto line = std::string(); std::getline(file, line); ) {
+        auto word = std::string();
+        auto stream = std::stringstream(line);
+
+        std::regex regex("\\x02");
+
+        auto lineSplit = std::vector<std::string>
+                (std::sregex_token_iterator(line.begin(), line.end(), regex, -1),
+                 std::sregex_token_iterator());
+
+        for (int i = 2; i < lineSplit.size(); i += 3) {
+            if(std::ranges::find(categories, lineSplit[i]) == categories.end())
+                categories.push_back(lineSplit[i]);
+        }
+    }
+}
+
+std::string addCategory(std::vector<std::string>& categories) {
+    cout << "Enter category name: ";
+    auto name = std::string();
+    std::getline(cin >> std::ws, name);
+
+    categories.push_back(name);
+    return name;
+}
+
+void printCategories(std::vector<std::string>& categories) {
+    for (int i = 0; i < categories.size(); ++i) {
+        cout << i + 1 << ". " << categories[i] << endl;
+    }
+}
+
+void deleteCategory(std::vector<std::string>& categories) {
+    cout << "Choose a category from the list to delete: " << endl;
+    printCategories(categories);
+}
 
 // TODO Introduce password complexity check
-void addPassword(std::string const& path) {
+void addPassword(std::string const& path, std::vector<std::string>& categories) {
 
     auto file = std::ofstream(path, std::ios::app);
 
     cout << "Password name: ";
 
     auto name = std::string();
-    cin >> name;
-    file << "\n" + name + " ";
+    std::getline(cin, name);
+    trim(name);
+    file << "\n" + name + (char) 2; // (char) 2 is used as a random character to split a line
 
     for (auto answer = int(); answer != 1 && answer != 2;) {
         cout << "Enter 1 to enter your own password, 2 to generate a random one: ";
@@ -30,7 +84,8 @@ void addPassword(std::string const& path) {
             case 1:
                 cout << "Password: ";
                 cin >> password;
-                file << password + " ";
+                trim(password);
+                file << password + (char) 2;
                 break;
             case 2:
             {
@@ -41,49 +96,171 @@ void addPassword(std::string const& path) {
                 cout << "Lowercase or uppercase letters? L for lower, U for upper, B for both: ";
                 auto letters = char();
                 cin >> letters;
+                letters = (char)std::toupper(letters);
 
                 cout << "Include special characters? Y for yes, N for no: ";
                 auto specialChars = char();
                 cin >> specialChars;
+                specialChars = (char)std::toupper(specialChars);
 
                 std::random_device rd;
                 std::uniform_int_distribution<int> lowercase(97, 122);
                 std::uniform_int_distribution<int> uppercase(65, 90);
                 std::uniform_int_distribution<int> special(35, 38);
-                std::uniform_int_distribution<int> typeOfChar(1, 3);
 
-                for (int i = 0; i < length; ++i) {
+                int low;
+                int high;
+                if (letters == 'L' && specialChars == 'N') {
+                    high = low = 1;
+                } else if (letters == 'L' && specialChars == 'Y') {
+                    for (int i = 0; i < length; ++i) {
+                        std::uniform_int_distribution<int>typeOfChar(1, 2);
+                        switch (typeOfChar(rd)) {
+                            case 1:
+                                password += (char) lowercase(rd);
+                            case 2:
+                                password += (char) special(rd);
+                        }
+                    }
+                } else if (letters == 'U' && specialChars == 'N') {
+                    high = low = 2;
+                } else if (letters == 'U' && specialChars == 'Y') {
+                    low = 2;
+                    high = 3;
+                } else if (letters == 'B' && specialChars == 'N') {
+                    low = 1;
+                    high = 2;
+                } else if (letters == 'B' && specialChars == 'Y') {
+                    low = 1;
+                    high = 3;
+                }
+//                for (int i = 0; i < length; ++i) {
+//                    switch (typeOfChar(rd)) {
+//                        case 1:
+//                            if (letters == 'L' || letters == 'B') {
+//                                password += (char) lowercase(rd);
+//                                break;
+//                            }
+//                        case 2:
+//                            if (letters == 'U' || letters == 'B') {
+//                                password += (char) uppercase(rd);
+//                                break;
+//                            }
+//                        case 3:
+//                            if (specialChars == 'Y') {
+//                                password += (char) special(rd);
+//                            }
+//                    }
+//                }
+//
+//                if(letters == 'L') {
+//                    if(specialChars == 'Y') {
+//                        for (int i = 0; i < length; ++i) {
+//                            std::uniform_int_distribution<int> typeOfChar(1, 2);
+//                            switch (typeOfChar(rd)) {
+//                                case 1:
+//                                    password += (char) lowercase(rd);
+//                                case 2:
+//                                    password += (char) special(rd);
+//                            }
+//                        }
+//                    } else {
+//                        for (int i = 0; i < length; ++i) {
+//                            password += (char)lowercase(rd);
+//                        }
+//                    }
+//                } else if (letters == 'U') {
+//                    if(specialChars == 'Y') {
+//                        for (int i = 0; i < length; ++i) {
+//                            std::uniform_int_distribution<int> typeOfChar(1, 2);
+//                            switch (typeOfChar(rd)) {
+//                                case 1:
+//                                    password += (char) uppercase(rd);
+//                                case 2:
+//                                    password += (char) special(rd);
+//                            }
+//                        }
+//                    } else {
+//                        for (int i = 0; i < length; ++i) {
+//                            password += (char)uppercase(rd);
+//                        }
+//                    }
+//                } else {
+//                    if (specialChars == 'Y') {
+//                        std::uniform_int_distribution<int> typeOfChar(1, 3);
+//                        switch (typeOfChar(rd)) {
+//                            case 1:
+//                                password += (char) lowercase(rd);
+//                            case 2:
+//                                password += (char) uppercase(rd);
+//                            case 3:
+//                                password += (char) special(rd);
+//                        }
+//                    } else {
+//                        std::uniform_int_distribution<int> typeOfChar(1, 3);
+//
+//                        switch (typeOfChar(rd)) {
+//                            case 1:
+//                                password += (char) lowercase(rd);
+//                            case 2:
+//                                password += (char) uppercase(rd);
+//                        }
+//                    }
+//                }
+
+                std::uniform_int_distribution<int> typeOfChar(low, high);
+                for (int i = 0; i < length && (letters != 'L' || specialChars != 'Y'); ++i) {
                     switch (typeOfChar(rd)) {
                         case 1:
-                            if (letters == 'L' || letters == 'B') {
-                                password += (char) lowercase(rd);
-                                break;
-                            }
+                            password += (char) lowercase(rd);
+                            break;
                         case 2:
-                            if (letters == 'U' || letters == 'B') {
-                                password += (char) uppercase(rd);
-                                break;
-                            }
+                            password += (char) uppercase(rd);
+                            break;
                         case 3:
-                            if (specialChars == 'Y') {
-                                password += (char) special(rd);
-                            }
+                            password += (char) special(rd);
                     }
                 }
-                file << password + " ";
+
+
+                cout << "Your password is " << password << endl;
+                file << password + (char) 2;
                 break;
             }
             default:
-                cout << "Wrong input!";
+                cout << "Invalid input!";
                 break;
         }
     }
 
-    cout << "Category: ";
+    if(categories.empty()) {
+        cout << "You don't have any categories for your passwords, let's create a new one." << endl;
+        addCategory(categories);
 
-    auto category = std::string();
-    cin >> category;
-    file << category + "\n";
+        file << *categories.begin();
+    } else {
+        auto answer = int();
+        while (answer != 1 && answer != 2) {
+            cout << "To choose an existing category enter 1, to create a new one enter 2: ";
+            cin >> answer;
+            switch (answer) {
+                case 1: {
+                    cout << "Enter category number: " << endl;
+                    printCategories(categories);
+                    auto category = int();
+                    cin >> category;
+
+                    file << categories[category - 1];
+                    break;
+                }
+                case 2:
+                    file << addCategory(categories);
+                    break;
+                default:
+                    cout << "Invalid input!";
+            }
+        }
+    }
 }
 
 bool searchPassword(std::string const& path) {
@@ -151,13 +328,16 @@ void sortPasswords(std::string const& path) {
         }
     }
 
-    for (int j = 0; j < passwordsTable.size(); ++j) {
-        fmt::print("{}\n", passwordsTable[j]);
+    for (auto const& j : passwordsTable) {
+        fmt::print("{}\n", j);
     }
 }
 
 int main() {
-    sortPasswords("password.txt");
+    auto categories = std::vector<std::string>();
+    fillCategories("password.txt", categories);
+
+    addPassword("password.txt", categories);
 
     return 0;
 }
@@ -165,9 +345,9 @@ int main() {
 
 
 //    for (int i = 0; i < 256; ++i) {
-//        cout << i << " " << (char) i << std::endl;
+//        cout << i << " " << (char) i << endl;
 //    }
-
+//
 //    cout << "Enter the name of the file: ";
 //    auto path = std::string();
 //
