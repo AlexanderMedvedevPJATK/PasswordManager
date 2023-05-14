@@ -277,7 +277,11 @@ bool searchPassword(std::string const& path) {
         auto stream = std::stringstream(line);
         while (stream >> word) {
             if (word.find(searchFor) != std::string::npos) {
-                cout << line;
+                size_t pos = 0;
+                while((pos = line.find((char) 2, pos)) != std::string::npos) {
+                    line.replace(pos, 1, " ");
+                }
+                cout << line << endl;
                 found = true;
             }
         }
@@ -336,8 +340,9 @@ void sortPasswords(std::string const& path) {
 int main() {
     auto categories = std::vector<std::string>();
     fillCategories("password.txt", categories);
+    printCategories(categories);
 
-    addPassword("password.txt", categories);
+    sortPasswords("password.txt");
 
     return 0;
 }
